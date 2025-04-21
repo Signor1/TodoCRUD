@@ -148,3 +148,75 @@ fun find_todo_by_index(list: &TodoList, todo_id: u64): u64{
 
     abort 0
 }
+
+
+// ========== TEST SECTION ==========
+#[test_only]
+use sui::test_scenario;
+#[test_only]
+use std::string;
+use std::unit_test::assert_eq;
+// #[test_only]
+// use std::vector;
+
+#[test]
+fun test_todolist_workflow() {
+    let owner = @0x0; // Use default test address
+    let mut scenario = test_scenario::begin(owner);
+
+    // === Initialization ===
+		{
+				init(scenario.ctx());
+		};
+    
+    // === Transaction 1: Publish package (auto-inits) ===
+    scenario.next_tx(owner);
+    {
+        // Init happens automatically here
+        let list = test_scenario::take_from_sender<TodoList>(&scenario);
+        assert!(get_todo_count(&list) == 0, 0);
+        assert!(list.next_id == 0, 1);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    // === Transaction 2: Create Todo ===
+    scenario.next_tx(owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        create_todo(&mut list, string::utf8(b"Buy groceries"));
+        create_todo(&mut list, string::utf8(b"Learn Move"));
+
+        assert!(get_todo_count(&list) == 2, 2);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    // === Transaction 3: Update todo ===
+    scenario.next_tx(owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        update_todo(&mut list, 1, string::utf8(b"Learn Sui Move"));
+        todo_completed(&mut list, 1, true);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    // === Transaction 4: Verify state ===
+    scenario.next_tx(owner);
+    {
+        let list = test_scenario::take_from_sender<TodoList>(&scenario);
+        let todo = get_todo_by_id(&list, 1);
+        assert_eq!(todo.task, string::utf8(b"Learn Sui Move"));
+        assert!(todo.completed);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    // === Transaction 5: Delete todo ===
+    scenario.next_tx(owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        delete_todo(&mut list, 0);
+        assert_eq!(get_todo_count(&list), 1);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    scenario.end();
+}
