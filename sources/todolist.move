@@ -313,3 +313,37 @@ fun test_unauthorized_access(){
 
     scenario.end();
 }
+
+#[test]
+fun test_id_sequence() {
+    let owner = @0xDEAD;
+    let mut scenario = test_scenario::begin(owner);
+    
+    scenario.next_tx(owner);
+    let ctx = test_scenario::ctx(&mut scenario);
+    init(ctx);
+    
+    scenario.next_tx(owner);
+    let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+    
+    // Create 3 todos
+    scenario.next_tx(owner);
+    {
+        create_todo(&mut list, string::utf8(b"First"));
+        create_todo(&mut list, string::utf8(b"Second"));
+        create_todo(&mut list, string::utf8(b"Third"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    
+    // Verify IDs
+    scenario.next_tx(owner);
+    {
+        let list = test_scenario::take_from_sender<TodoList>(&scenario);
+        assert_eq!(list.next_id, 3);
+        let todo = get_todo_by_id(&list, 2);
+        assert_eq!(todo.id, 2);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    
+    scenario.end();
+}
