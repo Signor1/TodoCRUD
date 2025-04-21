@@ -156,8 +156,8 @@ use sui::test_scenario;
 #[test_only]
 use std::string;
 use std::unit_test::assert_eq;
-// #[test_only]
-// use std::vector;
+
+
 
 #[test]
 fun test_todolist_workflow() {
@@ -219,4 +219,37 @@ fun test_todolist_workflow() {
     };
 
     scenario.end();
+}
+
+#[test]
+fun test_event_emissions(){
+    let owner = @0xBEEF;
+    let mut scenario = test_scenario::begin(owner);
+
+    // === Transaction 1: Initialize TodoList ===
+    scenario.next_tx(owner);
+    {
+        let ctx = test_scenario::ctx(&mut scenario);
+        init(ctx);
+    };
+
+    // === Transaction 2: Create Todo ===
+    let effects = test_scenario::next_tx(&mut scenario, owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        create_todo(&mut list, string::utf8(b"Build on Sui"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    assert_eq!(test_scenario::num_user_events(&effects), 0);
+
+    // === Transaction 3: Update Todo ===
+    let effects2 = test_scenario::next_tx(&mut scenario, owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        update_todo(&mut list, 0, string::utf8(b"Build on Sui Blockchain"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    assert_eq!(test_scenario::num_user_events(&effects2), 1);
+
+    test_scenario::end(scenario);
 }
