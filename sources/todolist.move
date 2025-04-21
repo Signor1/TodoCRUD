@@ -347,3 +347,36 @@ fun test_id_sequence() {
     
     scenario.end();
 }
+
+#[test]
+fun test_delete_all_todos() {
+    let owner = @0xCEAD;
+    let mut scenario = test_scenario::begin(owner);
+    
+    scenario.next_tx(owner);
+    let ctx = test_scenario::ctx(&mut scenario);
+    init(ctx);
+    
+    scenario.next_tx(owner);
+    let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+    
+    // Add todos
+    scenario.next_tx(owner);
+    {
+        create_todo(&mut list, string::utf8(b"Temp 1"));
+        create_todo(&mut list, string::utf8(b"Temp 2"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    
+    // Delete todos
+    scenario.next_tx(owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        delete_todo(&mut list, 0);
+        delete_todo(&mut list, 1);
+        assert_eq!(get_todo_count(&list), 0);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    
+    scenario.end();
+}
