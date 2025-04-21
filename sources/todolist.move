@@ -253,3 +253,28 @@ fun test_event_emissions(){
 
     test_scenario::end(scenario);
 }
+
+#[test]
+#[expected_failure(abort_code = 0, location = todolist::todolist)]
+fun test_invalid_todo_id(){
+    let owner = @0x0;
+    let mut scenario = test_scenario::begin(owner);
+
+    // Initialize
+    scenario.next_tx(owner);
+    let ctx = test_scenario::ctx(&mut scenario);
+    init(ctx);
+
+    // Take list
+    scenario.next_tx(owner);
+    let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+    
+    // Attempt invalid operation
+    scenario.next_tx(owner);
+    {
+        update_todo(&mut list, 999, string::utf8(b"Should fail"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    scenario.end();
+}
