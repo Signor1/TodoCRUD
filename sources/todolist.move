@@ -278,3 +278,38 @@ fun test_invalid_todo_id(){
 
     scenario.end();
 }
+
+#[test]
+#[expected_failure(abort_code = 3, location = sui::test_scenario)]
+fun test_unauthorized_access(){
+    let owner = @0xADAC;
+    let attacker = @0xDEDE;
+
+    let mut scenario = test_scenario::begin(owner);
+
+    // Owner initializes
+    scenario.next_tx(owner);
+    {
+        let ctx = test_scenario::ctx(&mut scenario);
+        init(ctx);
+    };
+
+
+    // Create Todo
+    scenario.next_tx(owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        create_todo(&mut list, string::utf8(b"Learn Move"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    // Attacker tries to access (should fail)
+    scenario.next_tx(attacker);
+    {
+        // This line will abort with EEmptyInventory (code 3)
+        let list = test_scenario::take_from_sender<TodoList>(&scenario);
+        test_scenario::return_to_sender(&scenario, list);
+    };
+
+    scenario.end();
+}
