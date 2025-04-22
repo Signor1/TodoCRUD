@@ -155,7 +155,6 @@ fun find_todo_by_index(list: &TodoList, todo_id: u64): u64{
 use sui::test_scenario;
 #[test_only]
 use std::string;
-use std::unit_test::assert_eq;
 
 
 
@@ -204,7 +203,7 @@ fun test_todolist_workflow() {
     {
         let list = test_scenario::take_from_sender<TodoList>(&scenario);
         let todo = get_todo_by_id(&list, 1);
-        assert_eq!(todo.task, string::utf8(b"Learn Sui Move"));
+        assert!(todo.task == string::utf8(b"Learn Sui Move"));
         assert!(todo.completed);
         test_scenario::return_to_sender(&scenario, list);
     };
@@ -214,7 +213,7 @@ fun test_todolist_workflow() {
     {
         let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
         delete_todo(&mut list, 0);
-        assert_eq!(get_todo_count(&list), 1);
+        assert!(get_todo_count(&list) == 1);
         test_scenario::return_to_sender(&scenario, list);
     };
 
@@ -240,7 +239,7 @@ fun test_event_emissions(){
         create_todo(&mut list, string::utf8(b"Build on Sui"));
         test_scenario::return_to_sender(&scenario, list);
     };
-    assert_eq!(test_scenario::num_user_events(&effects), 0);
+    assert!(test_scenario::num_user_events(&effects) == 0);
 
     // === Transaction 3: Update Todo ===
     let effects2 = test_scenario::next_tx(&mut scenario, owner);
@@ -249,7 +248,7 @@ fun test_event_emissions(){
         update_todo(&mut list, 0, string::utf8(b"Build on Sui Blockchain"));
         test_scenario::return_to_sender(&scenario, list);
     };
-    assert_eq!(test_scenario::num_user_events(&effects2), 1);
+    assert!(test_scenario::num_user_events(&effects2) == 1);
 
     test_scenario::end(scenario);
 }
@@ -339,9 +338,9 @@ fun test_id_sequence() {
     scenario.next_tx(owner);
     {
         let list = test_scenario::take_from_sender<TodoList>(&scenario);
-        assert_eq!(list.next_id, 3);
+        assert!(list.next_id == 3);
         let todo = get_todo_by_id(&list, 2);
-        assert_eq!(todo.id, 2);
+        assert!(todo.id == 2);
         test_scenario::return_to_sender(&scenario, list);
     };
     
@@ -374,7 +373,7 @@ fun test_delete_all_todos() {
         let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
         delete_todo(&mut list, 0);
         delete_todo(&mut list, 1);
-        assert_eq!(get_todo_count(&list), 0);
+        assert!(get_todo_count(&list) == 0);
         test_scenario::return_to_sender(&scenario, list);
     };
     
