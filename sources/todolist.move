@@ -380,3 +380,40 @@ fun test_delete_all_todos() {
     
     scenario.end();
 }
+
+#[test]
+#[expected_failure(abort_code = 3, location = sui::test_scenario)]
+fun test_concurrent_modification() {
+    let owner = @0xCADE;
+    let mut scenario = test_scenario::begin(owner);
+    
+    // === Initialization ===
+    scenario.next_tx(owner);
+    {
+        let ctx = test_scenario::ctx(&mut scenario);
+        init(ctx);
+    };
+    
+    // === Get TodoList ===
+    scenario.next_tx(owner);
+    let list = test_scenario::take_from_sender<TodoList>(&scenario);
+    
+    // === First Modification ===
+    scenario.next_tx(owner);
+    {
+        let mut list = test_scenario::take_from_sender<TodoList>(&scenario);
+        create_todo(&mut list, string::utf8(b"Task"));
+        test_scenario::return_to_sender(&scenario, list);
+    };
+    
+    // === Concurrent Modification Attempt ===
+    scenario.next_tx(owner);
+    {
+        // This will fail because previous transaction already modified the object
+        let mut stale_list = list;
+        delete_todo(&mut stale_list, 0);
+        test_scenario::return_to_sender(&scenario, stale_list);
+    };
+    
+    scenario.end();
+}
